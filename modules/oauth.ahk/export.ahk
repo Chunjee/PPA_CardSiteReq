@@ -1,10 +1,9 @@
-﻿
-/*
+﻿/*
 	###############################################################################################################
 	##                                   OAuth Function Library. Version 1.03                                    ##
 	###############################################################################################################
 	
-	Copyright ? 2011-2012 [VxE]. All rights reserved.
+	Copyright 2011-2012 [VxE]. All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without modification, are permitted provided that
 	the following conditions are met:
@@ -89,7 +88,7 @@ Static E := "oauth_", Hardcoded_Defaults := "`noauth_signature_method=HMAC-SHA1`
 oel := ErrorLevel
 Random, Vx, -2147483648, 2147483647
 Vx := OAuth__URIEncode( OAuth__HexToB64( SHA1( Vx := A_Now A_MSec Vx ) ) )
-Credentials .= "`noauth_nonce=53eb1f44909d6`noauth_timestamp=1407917892" Hardcoded_Defaults
+Credentials .= "`noauth_nonce=" Vx "`noauth_timestamp=" OAuth_Timestamp() Hardcoded_Defaults
 VarSetCapacity( Vx, 2048 >> !A_IsUnicode, 0 )
 ; Split the URL, first separating the query parameters from the uri, and enforce character case rules.
 p1 := InStr( URL "/", "/", 0, 3 + InStr( URL, "://" ) )
