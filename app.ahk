@@ -8,6 +8,7 @@
 
 #Include %A_ScriptDir%\node_modules
 #Include biga.ahk\export.ahk
+#Include json.ahk\export.ahk
 
 setworkingdir % a_scriptdir
 
@@ -31,23 +32,29 @@ A := new biga()
 ; GET https://api.cardmarket.com/ws/v1.1/articles/user/JonDoe
 
 
+; ---------------------tools---------------------
+;http://lti.tools/oauth/
+
+
 MAIN()
 {	global
-	dataset := 1
-	if (dataset == 1) {	
+	useStaticCredentials := false
+	if (useStaticCredentials) {	
 		credentials := {}
 		credentials.auth_consumer_key := "bfaD9xOU0SXBhtBP"
 		credentials.oauth_consumer_secret := "pChvrpp6AEOEwxBIIUBOvWcRG3X9xL4Y"
 		credentials.oauth_token := "lBY1xptUJ7ZJSK01x4fNwzw8kAe5b10Q"
 		credentials.oauth_token_secret := "hc1wJAOX02pGGJK2uAv1ZOiwS7I9Tpoe"
-	} else if (dataset=2) {
-		
+	} else {
+		; read credentials from disk
+		FileRead, OutputVar, %A_ScriptDir%\credentials.json
+		credentials := JSON.parse(OutputVar)
 	}
 	realm := "https://api.cardmarket.com/ws/v1.1/output.json/games"
 	
 
-	;msgbox % oauth_signature ;163qUUcPtGFLxUzqeCIChErTbKU=	http://lti.tools/oauth/
-	M4(credentials, "https://api.cardmarket.com/ws/v1.1/output.json/games")
+	responseObj := M4(credentials, "https://api.cardmarket.com/ws/v1.1/output.json/games")
+	msgbox, % A.printObj(responseObj)
 }
 
 M4(param_credentials, param_request) {    
@@ -55,8 +62,8 @@ M4(param_credentials, param_request) {
 
 	; create the credentials_string
     credentials_string := ""
-    . "oauth_consumer_key=" param_credentials.APPtoken 
-    . "`noauth_consumer_secret=" param_credentials.APPsecret 
+    . "oauth_consumer_key=" param_credentials.auth_consumer_key 
+    . "`noauth_consumer_secret=" param_credentials.oauth_consumer_secret 
     . "`nrealm=" param_request
     . "`noauth_token=" param_credentials.oauth_token
     . "`noauth_token_secret=" param_credentials.oauth_token_secret
@@ -66,7 +73,7 @@ M4(param_credentials, param_request) {
 
 	; create HTTP Req
     WinHTTP := comobjcreate("WinHttp.WinHttpRequest.5.1")
-    WinHTTP.Open("GET", URL, false)
+    WinHTTP.Open("GET", param_request, false)
     WinHTTP.SetRequestHeader("Accept", "application/json")
     WinHTTP.SetRequestHeader("Authorization", header)
 
@@ -75,8 +82,8 @@ M4(param_credentials, param_request) {
     WinHTTP.waitforresponse()
     
 	; return response if not blank
-    if (StrLen(WinHTTP.ResponseText) > 2) {
-		return WinHTTP.ResponseText
+    if (A.startsWith(WinHTTP.ResponseText, "2") { ; if server responded with 2XX
+		return JSON.parse(WinHTTP.ResponseText)
 	} else {
 		return false
 	}
@@ -181,8 +188,9 @@ rawurlencode(str)
 	return str
 }
 
-oauth_nonce() 
-{	random,nonce,-2147483648,2147483647 
+oauth_nonce()
+{	
+	random, nonce, -2147483648,2147483647 
 	return hex2base64(SHA1(a_now a_msec nonce))
 } 
 
@@ -192,8 +200,10 @@ oauth_nonce()
 ;	return (filetime-unixstart) // 10000000
 ;}
 
-querybuilder(kvp)
-{ for key, value in kvp
-	queryString.=((a_index="1")?("?"):("&")) key "=" value
+querybuilder(param_object)
+{
+	for key, value in param_object {
+		queryString.=((a_index="1")?("?"):("&")) key "=" value
+	}
 	return queryString
 }

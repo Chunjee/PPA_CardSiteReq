@@ -4,7 +4,8 @@
   "description": "",
   "main": "app.ahk",
   "dependencies": {
-    "biga.ahk": "^0.12.0"
+    "biga.ahk": "^0.12.0",
+    "json.ahk": "github:chunjee/json.ahk"
   },
   "devDependencies": {},
   "scripts": {
