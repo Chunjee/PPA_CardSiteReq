@@ -50,7 +50,6 @@ MAIN()
 		FileRead, OutputVar, %A_ScriptDir%\credentials.json
 		credentials := JSON.parse(OutputVar)
 	}
-	realm := "https://api.cardmarket.com/ws/v1.1/output.json/games"
 	
 
 	responseObj := M4(credentials, "https://api.cardmarket.com/ws/v1.1/output.json/games")
@@ -64,7 +63,7 @@ M4(param_credentials, param_request) {
     credentials_string := ""
     . "oauth_consumer_key=" param_credentials.auth_consumer_key 
     . "`noauth_consumer_secret=" param_credentials.oauth_consumer_secret 
-    . "`nrealm=" param_request
+    . "`nrealm=" rawurlencode("&" param_request) 
     . "`noauth_token=" param_credentials.oauth_token
     . "`noauth_token_secret=" param_credentials.oauth_token_secret
 
