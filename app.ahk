@@ -41,7 +41,7 @@ MAIN()
 	useStaticCredentials := false
 	if (useStaticCredentials) {	
 		credentials := {}
-		credentials.auth_consumer_key := "bfaD9xOU0SXBhtBP"
+		credentials.oauth_consumer_key := "bfaD9xOU0SXBhtBP"
 		credentials.oauth_consumer_secret := "pChvrpp6AEOEwxBIIUBOvWcRG3X9xL4Y"
 		credentials.oauth_token := "lBY1xptUJ7ZJSK01x4fNwzw8kAe5b10Q"
 		credentials.oauth_token_secret := "hc1wJAOX02pGGJK2uAv1ZOiwS7I9Tpoe"
@@ -61,15 +61,17 @@ M4(param_credentials, param_request) {
 
 	; create the credentials_string
     credentials_string := ""
-    . "oauth_consumer_key=" param_credentials.auth_consumer_key 
-    . "`noauth_consumer_secret=" param_credentials.oauth_consumer_secret 
-    . "`nrealm=" rawurlencode("&" param_request) 
-    . "`noauth_token=" param_credentials.oauth_token
-    . "`noauth_token_secret=" param_credentials.oauth_token_secret
+	. "OAuth realm="""rawurlencode(param_request)""","
+    . "oauth_consumer_key=""" param_credentials.oauth_consumer_key ""","
+    . "oauth_token=" param_credentials.oauth_consumer_secret 
+    . "realm=" "&" param_request
+    . "oauth_token=" param_credentials.oauth_token
+    . "oauth_token_secret=" param_credentials.oauth_token_secret
 
 	; create header
     header := OAuth_Authorization(credentials_string, param_request)
-
+	clipboard := header
+	; msgbox, % header
 	; create HTTP Req
     WinHTTP := comobjcreate("WinHttp.WinHttpRequest.5.1")
     WinHTTP.Open("GET", param_request, false)
@@ -81,7 +83,7 @@ M4(param_credentials, param_request) {
     WinHTTP.waitforresponse()
     
 	; return response if not blank
-    if (A.startsWith(WinHTTP.ResponseText, "2") { ; if server responded with 2XX
+    if (A.startsWith(WinHTTP.ResponseText, "2")) { ; if server responded with 2XX
 		return JSON.parse(WinHTTP.ResponseText)
 	} else {
 		return false
