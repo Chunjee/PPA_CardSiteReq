@@ -98,100 +98,116 @@ bcrypt_sha1_hmac(string,hmac,encoding:="utf-8")
     static BCRYPT_HASH_LENGTH          := "HashDigestLength"
 	try 
 	{	;loads the specified module into the address space of the calling process
-		if !(hBCRYPT:=DllCall("LoadLibrary","str","bcrypt.dll","ptr"))
-			throw Exception("Failed to load bcrypt.dll",-1)
+		if !(hBCRYPT:=DllCall("LoadLibrary", "str", "bcrypt.dll", "ptr"))
+			throw Exception("Failed to load bcrypt.dll", -1)
 		;open an algorithm handle
-		if (NT_STATUS:=DllCall("bcrypt\BCryptOpenAlgorithmProvider","ptr*",hAlg,"ptr",&BCRYPT_SHA1_ALGORITHM,"ptr",0,"uint",BCRYPT_ALG_HANDLE_HMAC_FLAG)!=0)
-			throw Exception("BCryptOpenAlgorithmProvider: " NT_STATUS,-1)
+		if (NT_STATUS:=DllCall("bcrypt\BCryptOpenAlgorithmProvider", "ptr*", hAlg, "ptr", &BCRYPT_SHA1_ALGORITHM, "ptr", 0, "uint", BCRYPT_ALG_HANDLE_HMAC_FLAG)!=0)
+			throw Exception("BCryptOpenAlgorithmProvider: " NT_STATUS, -1)
 		;calculate the size of the buffer to hold the hash object
-		if (NT_STATUS:=DllCall("bcrypt\BCryptGetProperty","ptr",hAlg,"ptr",&BCRYPT_OBJECT_LENGTH,"uint*",cbHashObject,"uint",4,"uint*",cbData,"uint",0)!=0)
-			throw Exception("BCryptGetProperty: " NT_STATUS,-1)
+		if (NT_STATUS:=DllCall("bcrypt\BCryptGetProperty", "ptr", hAlg, "ptr", &BCRYPT_OBJECT_LENGTH, "uint*", cbHashObject, "uint", 4, "uint*", cbData, "uint", 0)!=0)
+			throw Exception("BCryptGetProperty: " NT_STATUS, -1)
 		;allocate the hash object
-		VarSetCapacity(pbHashObject,cbHashObject,0) ;throw Exception("Memory allocation failed",-1)
+		VarSetCapacity(pbHashObject, cbHashObject, 0) ;throw Exception("Memory allocation failed", -1)
 		;calculate the length of the hash
-		if (NT_STATUS:=DllCall("bcrypt\BCryptGetProperty","ptr",hAlg,"ptr",&BCRYPT_HASH_LENGTH,"uint*",cbHash,"uint",4,"uint*",cbData,"uint",0)!=0)
-			throw Exception("BCryptGetProperty: " NT_STATUS,-1)
+		if (NT_STATUS:=DllCall("bcrypt\BCryptGetProperty", "ptr", hAlg, "ptr", &BCRYPT_HASH_LENGTH, "uint*", cbHash, "uint", 4, "uint*", cbData, "uint", 0)!=0)
+			throw Exception("BCryptGetProperty: " NT_STATUS, -1)
 		;allocate the hash buffer
-		VarSetCapacity(pbHash,cbHash,0) ;throw Exception("Memory allocation failed",-1)
+		VarSetCapacity(pbHash, cbHash, 0) ;throw Exception("Memory allocation failed", -1)
 		;create a hash
-		VarSetCapacity(pbSecret,(StrPut(hmac,encoding)-1)*((encoding="utf-16"||encoding="cp1200")?2:1),0)&&cbSecret:=StrPut(hmac,&pbSecret,encoding)-1
-		if (NT_STATUS:=DllCall("bcrypt\BCryptCreateHash","ptr",hAlg,"ptr*",hHash,"ptr",&pbHashObject,"uint",cbHashObject,"ptr",&pbSecret,"uint",cbSecret,"uint", 0) != 0)
-			throw Exception("BCryptCreateHash: " NT_STATUS,-1)
+		VarSetCapacity(pbSecret, (StrPut(hmac, encoding)-1)*((encoding="utf-16"||encoding="cp1200")?2:1), 0)&&cbSecret:=StrPut(hmac, &pbSecret, encoding)-1
+		if (NT_STATUS:=DllCall("bcrypt\BCryptCreateHash", "ptr", hAlg, "ptr*", hHash, "ptr", &pbHashObject, "uint", cbHashObject, "ptr", &pbSecret, "uint", cbSecret, "uint",  0) != 0)
+			throw Exception("BCryptCreateHash: " NT_STATUS, -1)
 		;hash some data
-		VarSetCapacity(pbInput,(StrPut(string,encoding)-1)*((encoding ="utf-16"||encoding="cp1200")?2 :1),0)&&cbInput:=StrPut(string,&pbInput,encoding)-1
-		if (NT_STATUS:=DllCall("bcrypt\BCryptHashData","ptr",hHash,"ptr",&pbInput,"uint",cbInput,"uint", 0)!= 0)
-			throw Exception("BCryptHashData: " NT_STATUS, -1)
+		VarSetCapacity(pbInput, (StrPut(string, encoding)-1)*((encoding ="utf-16"||encoding="cp1200")?2 :1), 0)&&cbInput:=StrPut(string, &pbInput, encoding)-1
+		if (NT_STATUS:=DllCall("bcrypt\BCryptHashData", "ptr", hHash, "ptr", &pbInput, "uint", cbInput, "uint", 0)!= 0)
+			throw Exception("BCryptHashData: " NT_STATUS,  -1)
 		;close the hash
-		if (NT_STATUS:=DllCall("bcrypt\BCryptFinishHash","ptr",hHash,"ptr",&pbHash,"uint",cbHash,"uint", 0)!= 0)
-			throw Exception("BCryptFinishHash: " NT_STATUS,-1)
+		if (NT_STATUS:=DllCall("bcrypt\BCryptFinishHash", "ptr", hHash, "ptr", &pbHash, "uint", cbHash, "uint", 0)!= 0)
+			throw Exception("BCryptFinishHash: " NT_STATUS, -1)
 		loop % cbHash
-			hash.=Format("{:02x}",NumGet(pbHash,a_index-1,"uchar"))
+			hash.=Format("{:02x}", NumGet(pbHash, a_index-1, "uchar"))
 	}
 	catch exception
 		throw Exception ;represents errors that occur during application execution
 	finally
 	{	;cleaning up resources
 		if (pbInput)
-			VarSetCapacity(pbInput,0)
+			VarSetCapacity(pbInput, 0)
 		if (hHash)
-			DllCall("bcrypt\BCryptDestroyHash","ptr",hHash)
+			DllCall("bcrypt\BCryptDestroyHash", "ptr", hHash)
 		if (pbHash)
-			VarSetCapacity(pbHash,0)
+			VarSetCapacity(pbHash, 0)
 		if (pbHashObject)
-			VarSetCapacity(pbHashObject,0)
+			VarSetCapacity(pbHashObject, 0)
 		if (hAlg)
-			DllCall("bcrypt\BCryptCloseAlgorithmProvider","ptr",hAlg,"uint",0)
+			DllCall("bcrypt\BCryptCloseAlgorithmProvider", "ptr", hAlg, "uint", 0)
 		if (hBCRYPT)
-			DllCall("FreeLibrary","ptr",hBCRYPT)
+			DllCall("FreeLibrary", "ptr", hBCRYPT)
 	}
 	return hash
 }
 
 hex2base64(hex)
-{	stringleft,n,hex,2
-	stringtrimleft,hex,hex,(n="0x")<<1
-	stringlen,l,hex
-	n:=0,l:=mod(l >> 1,3)
-	loop,parse,hex
-	{	i:="0x" a_loopfield,n:=i|(n<<4)
-		if !mod(a_index,6)
-		{	loop 4
+{	
+	stringleft, n, hex, 2
+	stringtrimleft, hex, hex, (n="0x")<<1
+	stringlen, l, hex
+	n := 0
+	l := mod(l >> 1, 3)
+	loop, parse, hex
+	{	
+		i := "0x" a_loopfield, 
+		n := i|(n<<4)
+		if !mod(a_index, 6) {
+			loop 4
+			{
 				v:=chr(101-a_index),i:=63 & n,n >>= 6
 				,%v%:=chr(i<26?i+65:i<52?i+71:i<62?i-4:i=62?43:47)
-			if (a_index=6)
+			}
+			if (a_index=6) {
 				hex:=a b c d
-			else hex.=a b c d
+			} else {
+				hex.=a b c d
+			}
 		}
 	}
-	if !(l)
+	if !(l) {
 		return hex
+	}
 	n <<= 3-l << 3
 	loop 4
+	{
 		v:=chr(101-a_index),i:=63&n,n >>= 6
 		,%v%:=chr(i<26?i+65:i<52?i+71:i<62?i-4:i=62?43:47)
+	}
 	return l=1?hex a b "==":hex a b c "="
 }
 
 rawurlencode(str)
-{	formatinteger:=a_formatinteger
-	setformat,integer,h
-	stringreplace,str,str,`%,`%25,all
+{	
+	formatinteger := a_formatinteger
+	setformat, integer, h
+	stringreplace, str, str, `%, `%25, all
 	loop
-	{	if regexmatch(str,"i)[^%a-z\d-_\.]",char)
-	    {	code:=substr(asc(char),3)
-			if strlen(code)<2
+	{
+		if regexmatch(str, "i)[^%a-z\d-_\.]", char) {
+			code := substr(asc(char), 3)
+			if (strlen(code) < 2) {
 				code=0%Code%
-			stringupper,code,code
-			stringreplace,str,str,%Char%,`%%Code%,all
-	    }   else break
+			}
+			stringupper, code, code
+			stringreplace, str, str, %Char%, `%%Code%, all
+	    } else {
+			break
+		}
 	}
-	setformat,integer,%formatinteger%
+	setformat, integer, %formatinteger%
 	return str
 }
 
 oauth_nonce()
-{	
-	random, nonce, -2147483648,2147483647 
+{
+	random, nonce, -2147483648,2147483647
 	return hex2base64(SHA1(a_now a_msec nonce))
 } 
 
